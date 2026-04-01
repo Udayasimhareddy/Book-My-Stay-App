@@ -1,79 +1,103 @@
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Data class for requests.
- * Name and Constructor must match.
- */
-class BookingRequest {
-    private final String guestName;
-    private final String roomType;
-
-    public BookingRequest(String guestName, String roomType) {
-        this.guestName = guestName;
-        this.roomType = roomType;
-    }
-
-    public String getGuestName() { return guestName; }
-    public String getRoomType() { return roomType; }
+// -------------------- Add-On Service Interface --------------------
+interface AddOnService {
+    String getName();
+    double getCost();
 }
 
-/**
- * Main Class - Must match file name: BookMyStayApp.java
- */
+// -------------------- Dynamic User-Defined Service --------------------
+class CustomService implements AddOnService {
+    private String name;
+    private double cost;
+
+    public CustomService(String name, double cost) {
+        this.name = name;
+        this.cost = cost;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getCost() {
+        return cost;
+    }
+}
+
+// -------------------- Add-On Service Manager --------------------
+class AddOnServiceManager {
+
+    private Map<String, List<AddOnService>> reservationServicesMap = new HashMap<>();
+
+    public void addService(String reservationId, AddOnService service) {
+        reservationServicesMap
+                .computeIfAbsent(reservationId, k -> new ArrayList<>())
+                .add(service);
+    }
+
+    public List<AddOnService> getServices(String reservationId) {
+        return reservationServicesMap.getOrDefault(reservationId, Collections.emptyList());
+    }
+
+    public double calculateTotalServiceCost(String reservationId) {
+        double total = 0.0;
+        for (AddOnService service : getServices(reservationId)) {
+            total += service.getCost();
+        }
+        return total;
+    }
+
+    public void printServices(String reservationId) {
+        List<AddOnService> services = getServices(reservationId);
+
+        if (services.isEmpty()) {
+            System.out.println("No add-on services selected.");
+            return;
+        }
+
+        System.out.println("\nServices for Reservation ID: " + reservationId);
+        for (AddOnService service : services) {
+            System.out.println("- " + service.getName() + ": ₹" + service.getCost());
+        }
+    }
+}
+
+// -------------------- Main (User Input Flow) --------------------
 public class BookMyStayApp {
-
-    private final Map<String, AtomicInteger> inventoryService = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> allocatedRooms = new ConcurrentHashMap<>();
-    private final Queue<BookingRequest> requestQueue = new LinkedList<>();
-
-    // Constructor name now matches the Class name
-    public BookMyStayApp() {
-        inventoryService.put("DELUXE", new AtomicInteger(10));
-        inventoryService.put("SUITE", new AtomicInteger(5));
-        allocatedRooms.put("DELUXE", ConcurrentHashMap.newKeySet());
-        allocatedRooms.put("SUITE", ConcurrentHashMap.newKeySet());
-    }
-
-    public synchronized String processBooking() {
-        BookingRequest request = requestQueue.poll();
-        if (request == null) return "Queue empty.";
-
-        String roomType = request.getRoomType();
-        AtomicInteger availableCount = inventoryService.get(roomType);
-
-        if (availableCount != null && availableCount.get() > 0) {
-            String roomId = roomType + "-" + (100 + (int)(Math.random() * 900));
-            Set<String> assignedSet = allocatedRooms.get(roomType);
-
-            if (assignedSet.add(roomId)) {
-                availableCount.decrementAndGet();
-                return String.format("Confirmed: Room %s assigned to %s", roomId, request.getGuestName());
-            }
-        }
-        return "Booking Failed: No availability for " + roomType;
-    }
-
-    public void addRequest(BookingRequest request) {
-        requestQueue.add(request);
-    }
-
-    // Main method inside the BookMyStayApp class
     public static void main(String[] args) {
-        BookMyStayApp system = new BookMyStayApp();
 
-        // Add sample requests
-        system.addRequest(new BookingRequest("Alice", "SUITE"));
-        system.addRequest(new BookingRequest("Bob", "DELUXE"));
-        system.addRequest(new BookingRequest("Charlie", "SUITE"));
+        Scanner scanner = new Scanner(System.in);
+        AddOnServiceManager manager = new AddOnServiceManager();
 
-        System.out.println("--- Hotel Booking System ---");
+        System.out.print("Enter Reservation ID: ");
+        String reservationId = scanner.nextLine();
 
-        // Process requests until empty
-        String result;
-        while (!(result = system.processBooking()).equals("Queue empty.")) {
-            System.out.println(result);
+        while (true) {
+            System.out.print("\nEnter service name (or type 'done' to finish): ");
+            String name = scanner.nextLine();
+
+            if (name.equalsIgnoreCase("done")) {
+                break;
+            }
+
+            System.out.print("Enter service cost: ");
+            double cost = scanner.nextDouble();
+            scanner.nextLine(); // consume newline
+
+            // Create user-defined service
+            AddOnService service = new CustomService(name, cost);
+
+            manager.addService(reservationId, service);
+            System.out.println("Service added!");
         }
+
+        // Display results
+        manager.printServices(reservationId);
+
+        double totalCost = manager.calculateTotalServiceCost(reservationId);
+        System.out.println("\nTotal Add-On Cost: ₹" + totalCost);
+
+        scanner.close();
     }
 }
