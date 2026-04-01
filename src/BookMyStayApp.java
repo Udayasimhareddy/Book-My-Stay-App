@@ -38,37 +38,39 @@ class SuiteRoom extends Room {
     }
 }
 
-// UC3: RoomInventory class
+// Inventory (UC3)
 class RoomInventory {
-
-    // HashMap to store availability
     private HashMap<String, Integer> inventory = new HashMap<>();
 
-    // Register room type
     void addRoom(String type, int count) {
         inventory.put(type, count);
     }
 
-    // Get availability
     int getAvailability(String type) {
         return inventory.getOrDefault(type, 0);
     }
+}
 
-    // Update availability
-    void updateAvailability(String type, int count) {
-        inventory.put(type, count);
-    }
+// UC4: Search Service
+class SearchService {
 
-    // Display all inventory
-    void displayInventory() {
-        System.out.println("\n--- Room Inventory ---");
-        for (String type : inventory.keySet()) {
-            System.out.println(type + " Rooms Available: " + inventory.get(type));
+    void searchRooms(Room[] rooms, RoomInventory inventory) {
+        System.out.println("\n--- Available Rooms ---");
+
+        for (Room room : rooms) {
+
+            int available = inventory.getAvailability(room.type);
+
+            // Filter unavailable rooms
+            if (available > 0) {
+                room.displayDetails();
+                System.out.println("Available: " + available);
+            }
         }
     }
 }
 
-// Main class (same file)
+// Main class
 public class BookMyStayApp {
     public static void main(String[] args) {
 
@@ -76,34 +78,23 @@ public class BookMyStayApp {
         System.out.println("=== Book My Stay Application ===");
         System.out.println("Version: 1.0");
 
-        // UC2
+        // UC2: Room objects
         Room r1 = new SingleRoom();
         Room r2 = new DoubleRoom();
         Room r3 = new SuiteRoom();
 
-        // Display room details
-        System.out.println("\n--- Room Details ---");
-        r1.displayDetails();
-        r2.displayDetails();
-        r3.displayDetails();
+        Room[] rooms = {r1, r2, r3};
 
-        // UC3: Inventory using HashMap
+        // UC3: Inventory
         RoomInventory inventory = new RoomInventory();
-
-        // Register rooms
         inventory.addRoom("Single", 5);
-        inventory.addRoom("Double", 3);
+        inventory.addRoom("Double", 0); // unavailable
         inventory.addRoom("Suite", 2);
 
-        // Display inventory
-        inventory.displayInventory();
+        // UC4: Search
+        SearchService search = new SearchService();
+        search.searchRooms(rooms, inventory);
 
-        // Example update
-        inventory.updateAvailability("Single", 4);
-
-        System.out.println("\nAfter Update:");
-        inventory.displayInventory();
-
-        System.out.println("\nApplication Terminated.");
+        System.out.println("\nSearch Completed (Read-Only Operation)");
     }
 }
