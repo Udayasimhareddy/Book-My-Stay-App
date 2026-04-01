@@ -1,16 +1,17 @@
+import java.util.HashMap;
+
+// Abstract Room class
 abstract class Room {
     int beds;
     double price;
     String type;
 
-    // Constructor
     Room(String type, int beds, double price) {
         this.type = type;
         this.beds = beds;
         this.price = price;
     }
 
-    // Method to display room details
     void displayDetails() {
         System.out.println("Room Type: " + type);
         System.out.println("Beds: " + beds);
@@ -18,56 +19,91 @@ abstract class Room {
     }
 }
 
-// Single Room
+// Room types
 class SingleRoom extends Room {
     SingleRoom() {
-        super("Single Room", 1, 1000);
+        super("Single", 1, 1000);
     }
 }
 
-// Double Room
 class DoubleRoom extends Room {
     DoubleRoom() {
-        super("Double Room", 2, 2000);
+        super("Double", 2, 2000);
     }
 }
 
-// Suite Room
 class SuiteRoom extends Room {
     SuiteRoom() {
-        super("Suite Room", 3, 5000);
+        super("Suite", 3, 5000);
     }
 }
 
-public class BookMyStayaApp {
+// UC3: RoomInventory class
+class RoomInventory {
+
+    // HashMap to store availability
+    private HashMap<String, Integer> inventory = new HashMap<>();
+
+    // Register room type
+    void addRoom(String type, int count) {
+        inventory.put(type, count);
+    }
+
+    // Get availability
+    int getAvailability(String type) {
+        return inventory.getOrDefault(type, 0);
+    }
+
+    // Update availability
+    void updateAvailability(String type, int count) {
+        inventory.put(type, count);
+    }
+
+    // Display all inventory
+    void displayInventory() {
+        System.out.println("\n--- Room Inventory ---");
+        for (String type : inventory.keySet()) {
+            System.out.println(type + " Rooms Available: " + inventory.get(type));
+        }
+    }
+}
+
+// Main class (same file)
+public class BookMyStayApp {
     public static void main(String[] args) {
 
-        // UC1 (already done)
-        System.out.println("=== Palindrome Checker Application ===");
+        // UC1
+        System.out.println("=== Book My Stay Application ===");
         System.out.println("Version: 1.0");
 
-        // UC2 starts here
-
-        // Create room objects (Polymorphism)
+        // UC2
         Room r1 = new SingleRoom();
         Room r2 = new DoubleRoom();
         Room r3 = new SuiteRoom();
 
-        // Static availability
-        int singleAvailable = 5;
-        int doubleAvailable = 3;
-        int suiteAvailable = 2;
-
-        // Display details
+        // Display room details
         System.out.println("\n--- Room Details ---");
-
         r1.displayDetails();
-        System.out.println("Available: " + singleAvailable);
-
         r2.displayDetails();
-        System.out.println("Available: " + doubleAvailable);
-
         r3.displayDetails();
-        System.out.println("Available: " + suiteAvailable);
+
+        // UC3: Inventory using HashMap
+        RoomInventory inventory = new RoomInventory();
+
+        // Register rooms
+        inventory.addRoom("Single", 5);
+        inventory.addRoom("Double", 3);
+        inventory.addRoom("Suite", 2);
+
+        // Display inventory
+        inventory.displayInventory();
+
+        // Example update
+        inventory.updateAvailability("Single", 4);
+
+        System.out.println("\nAfter Update:");
+        inventory.displayInventory();
+
+        System.out.println("\nApplication Terminated.");
     }
 }
