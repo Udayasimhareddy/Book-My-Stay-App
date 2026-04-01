@@ -1,142 +1,79 @@
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
-// Abstract Room class
-abstract class Room {
-    int beds;
-    double price;
-    String type;
+/**
+ * Data class for requests.
+ * Name and Constructor must match.
+ */
+class BookingRequest {
+    private final String guestName;
+    private final String roomType;
 
-    Room(String type, int beds, double price) {
-        this.type = type;
-        this.beds = beds;
-        this.price = price;
-    }
-
-    void displayDetails() {
-        System.out.println("Room Type: " + type);
-        System.out.println("Beds: " + beds);
-        System.out.println("Price: " + price);
-    }
-}
-
-// Room types
-class SingleRoom extends Room {
-    SingleRoom() {
-        super("Single", 1, 1000);
-    }
-}
-
-class DoubleRoom extends Room {
-    DoubleRoom() {
-        super("Double", 2, 2000);
-    }
-}
-
-class SuiteRoom extends Room {
-    SuiteRoom() {
-        super("Suite", 3, 5000);
-    }
-}
-
-// UC3: Inventory
-class RoomInventory {
-    private HashMap<String, Integer> inventory = new HashMap<>();
-
-    void addRoom(String type, int count) {
-        inventory.put(type, count);
-    }
-
-    int getAvailability(String type) {
-        return inventory.getOrDefault(type, 0);
-    }
-}
-
-// UC4: Search Service
-class SearchService {
-    void searchRooms(Room[] rooms, RoomInventory inventory) {
-        System.out.println("\n--- Available Rooms ---");
-
-        for (Room room : rooms) {
-            int available = inventory.getAvailability(room.type);
-
-            if (available > 0) {
-                room.displayDetails();
-                System.out.println("Available: " + available);
-            }
-        }
-    }
-}
-
-// UC5: Reservation
-class Reservation {
-    String guestName;
-    String roomType;
-
-    Reservation(String guestName, String roomType) {
+    public BookingRequest(String guestName, String roomType) {
         this.guestName = guestName;
         this.roomType = roomType;
     }
 
-    void display() {
-        System.out.println("Guest: " + guestName + " | Room Type: " + roomType);
-    }
+    public String getGuestName() { return guestName; }
+    public String getRoomType() { return roomType; }
 }
 
-// UC5: Booking Queue
-class BookingQueue {
-    private Queue<Reservation> queue = new LinkedList<>();
-
-    void addRequest(Reservation r) {
-        queue.add(r);
-        System.out.println("Request added for " + r.guestName);
-    }
-
-    void displayQueue() {
-        System.out.println("\n--- Booking Request Queue ---");
-        for (Reservation r : queue) {
-            r.display();
-        }
-    }
-}
-
-// MAIN CLASS (VERY IMPORTANT 🔥)
+/**
+ * Main Class - Must match file name: BookMyStayApp.java
+ */
 public class BookMyStayApp {
+
+    private final Map<String, AtomicInteger> inventoryService = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> allocatedRooms = new ConcurrentHashMap<>();
+    private final Queue<BookingRequest> requestQueue = new LinkedList<>();
+
+    // Constructor name now matches the Class name
+    public BookMyStayApp() {
+        inventoryService.put("DELUXE", new AtomicInteger(10));
+        inventoryService.put("SUITE", new AtomicInteger(5));
+        allocatedRooms.put("DELUXE", ConcurrentHashMap.newKeySet());
+        allocatedRooms.put("SUITE", ConcurrentHashMap.newKeySet());
+    }
+
+    public synchronized String processBooking() {
+        BookingRequest request = requestQueue.poll();
+        if (request == null) return "Queue empty.";
+
+        String roomType = request.getRoomType();
+        AtomicInteger availableCount = inventoryService.get(roomType);
+
+        if (availableCount != null && availableCount.get() > 0) {
+            String roomId = roomType + "-" + (100 + (int)(Math.random() * 900));
+            Set<String> assignedSet = allocatedRooms.get(roomType);
+
+            if (assignedSet.add(roomId)) {
+                availableCount.decrementAndGet();
+                return String.format("Confirmed: Room %s assigned to %s", roomId, request.getGuestName());
+            }
+        }
+        return "Booking Failed: No availability for " + roomType;
+    }
+
+    public void addRequest(BookingRequest request) {
+        requestQueue.add(request);
+    }
+
+    // Main method inside the BookMyStayApp class
     public static void main(String[] args) {
+        BookMyStayApp system = new BookMyStayApp();
 
-        // UC1
-        System.out.println("=== Book My Stay Application ===");
-        System.out.println("Version: 1.0");
+        // Add sample requests
+        system.addRequest(new BookingRequest("Alice", "SUITE"));
+        system.addRequest(new BookingRequest("Bob", "DELUXE"));
+        system.addRequest(new BookingRequest("Charlie", "SUITE"));
 
-        // UC2: Room creation
-        Room r1 = new SingleRoom();
-        Room r2 = new DoubleRoom();
-        Room r3 = new SuiteRoom();
+        System.out.println("--- Hotel Booking System ---");
 
-        Room[] rooms = {r1, r2, r3};
-
-        // UC3: Inventory
-        RoomInventory inventory = new RoomInventory();
-        inventory.addRoom("Single", 5);
-        inventory.addRoom("Double", 0);
-        inventory.addRoom("Suite", 2);
-
-        // UC4: Search
-        SearchService search = new SearchService();
-        search.searchRooms(rooms, inventory);
-
-        // UC5: Booking Queue
-        BookingQueue bookingQueue = new BookingQueue();
-
-        Reservation req1 = new Reservation("Alice", "Single");
-        Reservation req2 = new Reservation("Bob", "Suite");
-        Reservation req3 = new Reservation("Charlie", "Single");
-
-        bookingQueue.addRequest(req1);
-        bookingQueue.addRequest(req2);
-        bookingQueue.addRequest(req3);
-
-        bookingQueue.displayQueue();
-
-        System.out.println("\nApplication Ended.");
+        // Process requests until empty
+        String result;
+        while (!(result = system.processBooking()).equals("Queue empty.")) {
+            System.out.println(result);
+        }
     }
 }
